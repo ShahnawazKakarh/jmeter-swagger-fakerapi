@@ -1,0 +1,43 @@
+# JMeter Base Image
+# This image contains the common setup for both master and slave containers
+# FROM openjdk:8-jre-slim
+
+FROM eclipse-temurin:8-jre-jammy
+
+LABEL maintainer="ShahnawazKhan"
+LABEL description="JMeter Base Image for Distributed Load Testing"
+
+# JMeter version - you can update this as needed
+ARG JMETER_VERSION=5.6.3
+
+# Install required utilities
+RUN apt-get clean && \
+    apt-get update && \
+    apt-get -qy install \
+        wget \
+        telnet \
+        iputils-ping \
+        unzip \
+        curl && \
+    apt-get clean && \
+    rm -rf /var/lib/apt/lists/*
+
+# Create JMeter directory and download JMeter
+RUN mkdir -p /jmeter && \
+    cd /jmeter && \
+    wget -q https://archive.apache.org/dist/jmeter/binaries/apache-jmeter-${JMETER_VERSION}.tgz && \
+    tar -xzf apache-jmeter-${JMETER_VERSION}.tgz && \
+    rm apache-jmeter-${JMETER_VERSION}.tgz
+
+# Set JMeter Home
+ENV JMETER_HOME=/jmeter/apache-jmeter-${JMETER_VERSION}
+ENV PATH=${JMETER_HOME}/bin:${PATH}
+
+# Create directories for test plans and results
+RUN mkdir -p /test-plans /results
+
+# Set working directory
+WORKDIR ${JMETER_HOME}
+
+# Expose the default JMeter ports (will be overridden in master/slave)
+EXPOSE 1099 50000 60000
