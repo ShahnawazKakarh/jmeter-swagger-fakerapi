@@ -1,0 +1,32 @@
+# JMeter Slave/Server Image
+# This container will execute the actual load testing
+
+FROM jmeter-base:latest
+
+LABEL description="JMeter Slave for Distributed Load Testing"
+
+# Expose ports required for slave operation
+# 1099: RMI registry port
+# 50000: Local RMI port
+EXPOSE 1099 50000
+
+# Set JVM arguments for slave
+ENV JVM_ARGS="-Xms512m -Xmx1g"
+
+# Create entrypoint script for slave - FIXED: IP extraction and SSL disable
+RUN echo '#!/bin/bash\n\
+echo "JMeter Slave starting..."\n\
+SLAVE_IP=$(hostname -I | tr -d " ")\n\
+echo "Slave IP: $SLAVE_IP"\n\
+echo "RMI Registry Port: 1099"\n\
+echo "RMI Local Port: 50000"\n\
+echo "Starting JMeter server..."\n\
+exec ${JMETER_HOME}/bin/jmeter-server \\\n\
+    -Dserver.rmi.localport=50000 \\\n\
+    -Dserver_port=1099 \\\n\
+    -Djava.rmi.server.hostname=$SLAVE_IP \\\n\
+    -Dserver.rmi.ssl.disable=true\n\
+' > /docker-entrypoint.sh && chmod +x /docker-entrypoint.sh
+
+# Start JMeter server
+CMD ["/docker-entrypoint.sh"]

@@ -1,0 +1,28 @@
+# JMeter Master/Client Image
+# This container will control the distributed test execution
+
+FROM jmeter-base:latest
+
+LABEL description="JMeter Master for Distributed Load Testing"
+
+# Expose port for master to receive results from slaves
+EXPOSE 60000
+
+# Set RMI settings for master - FIXED: Added SSL disable
+ENV JVM_ARGS="-Xms512m -Xmx2g -Dserver.rmi.ssl.disable=true"
+
+# Create entrypoint script for master - FIXED: Better IP extraction
+RUN echo '#!/bin/bash\n\
+echo "JMeter Master starting..."\n\
+MASTER_IP=$(hostname -I | tr -d " ")\n\
+echo "Master IP: $MASTER_IP"\n\
+echo "Available commands:"\n\
+echo "  - To run a test: jmeter -n -t /test-plans/your-test.jmx -R <slave-ips>"\n\
+echo "  - To run with results: jmeter -n -t /test-plans/your-test.jmx -R <slave-ips> -l /results/results.jtl -e -o /results/html"\n\
+echo "  - To check slaves: telnet <slave-ip> 1099"\n\
+echo "Ready for test execution..."\n\
+tail -f /dev/null\n\
+' > /docker-entrypoint.sh && chmod +x /docker-entrypoint.sh
+
+# Default command
+CMD ["/docker-entrypoint.sh"]
